@@ -1,4 +1,3 @@
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module SKII.SKII (main) where
@@ -9,9 +8,9 @@ import Control.Monad (unless, when)
 import Control.Monad.IO.Class (liftIO)
 import Data.Bool (bool)
 import Data.Text (pack, unpack)
-import SKII.Parse (CST, RunParserError, parseInput)
+import SKII.Parse (RunParserError, parseInput)
 import SKII.Reduce (reduce, rmExtraGroupings)
-import SKII.Utils (SGRsPair, cstToText)
+import SKII.Utils (CST, SGRsPair, cstToText, noop)
 import System.Console.ANSI (
     Color (..),
     ColorIntensity (..),
@@ -32,13 +31,9 @@ import Text.Megaparsec (errorBundlePretty)
 main :: IO ()
 main = runInputT defaultSettings promptLoopWithInterrupt
 promptLoopWithInterrupt :: InputT IO ()
-promptLoopWithInterrupt = withInterrupt (handleInterrupt (outputStrLn "SIGINT" >> promptLoopWithInterrupt) promptLoop)
+promptLoopWithInterrupt = withInterrupt $ handleInterrupt (outputStrLn "SIGINT" >> promptLoopWithInterrupt) promptLoop
 promptLoop :: InputT IO ()
-promptLoop =
-    getInputLine ">>> " >>= \case
-        Nothing -> return ()
-        Just "" -> promptLoop
-        Just input -> handleInput input >> promptLoop
+promptLoop = getInputLine ">>> " >>= maybe noop ((>> promptLoop) . handleInput)
 
 handleInput :: String -> InputT IO ()
 handleInput = either processErr processCST . parseInput . pack
@@ -58,14 +53,10 @@ syntaxHgls =
 reductionLoop :: Int -> [CST] -> CST -> IO ()
 reductionLoop steps redexStack input = do
     threadDelay 100000
-    let (nextSteps, reducedInput) = second rmExtraGroupings $ reduce steps input
-    let isReduced = input /= reducedInput
-    when (isReduced || null redexStack) . putStrLn . unpack $ "  = " <> cstToText syntaxHgls reducedInput
     let nextRedexStack = input : redexStack
-    let exitCondition = reducedInput `elem` nextRedexStack
-    if exitCondition
-        then
-            if isReduced
-                then putStrLn "Endless loop"
-                else when exitCondition . putStrLn $ show nextSteps ++ bool " steps" " step" (nextSteps == 1)
+        (nextSteps, reducedInput) = second rmExtraGroupings $ reduce steps input
+        isReduced = input /= reducedInput
+    when (isReduced || null redexStack) . putStrLn . unpack $ "  = " <> cstToText syntaxHgls reducedInput
+    if reducedInput `elem` nextRedexStack
+        then putStrLn $ bool (show nextSteps ++ bool " steps" " step" (nextSteps == 1)) "Endless loop" isReduced
         else reductionLoop nextSteps nextRedexStack reducedInput

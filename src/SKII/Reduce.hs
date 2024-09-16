@@ -4,7 +4,8 @@
 module SKII.Reduce (reduce, rmExtraGroupings) where
 
 import Control.Arrow (second)
-import SKII.Parse (CST, CSTNode (..))
+import Data.Function ((&))
+import SKII.Utils (CST, CSTNode (..))
 
 reduce :: Int -> CST -> (Int, CST)
 reduce steps = \case
@@ -23,14 +24,14 @@ groupReduce gsteps = \case
     [] -> (gsteps, [])
     (Combinator c : rest) -> second (Combinator c :) $ groupReduce gsteps rest
     (Group groupCst : rest) ->
-        let (isReduced, groupCst') = reduce 0 groupCst
-         in case isReduced of
-                0 -> second (Group groupCst' :) $ groupReduce gsteps rest
-                1 -> (gsteps + 1, Group groupCst' : rest)
+        case reduce 0 groupCst of
+            (0, groupCst') -> second (Group groupCst' :) $ groupReduce gsteps rest
+            (1, groupCst') -> (gsteps + 1, Group groupCst' : rest)
 
 rmExtraGroupings :: CST -> CST
 rmExtraGroupings (Group groupCst : rest) = rmExtraGroupings $ groupCst ++ rest
-rmExtraGroupings cst = flip map cst \case
-    Group [Combinator c] -> Combinator c
-    Group groupCst -> Group $ rmExtraGroupings groupCst
-    cst' -> cst'
+rmExtraGroupings cst =
+    cst & map \case
+        Group [Combinator c] -> Combinator c
+        Group groupCst -> Group $ rmExtraGroupings groupCst
+        cst' -> cst'
