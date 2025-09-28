@@ -13,8 +13,9 @@ import SKII.Utils (CST, SGRsPair, cstToText, noop)
 import System.Console.ANSI (
     Color (..),
     ColorIntensity (..),
+    ConsoleIntensity (BoldIntensity),
     ConsoleLayer (..),
-    SGR (Reset, SetColor),
+    SGR (Reset, SetColor, SetConsoleIntensity),
  )
 import System.Console.Haskeline (
     InputT,
@@ -45,8 +46,8 @@ processCST = unless . null <*> liftIO . reductionLoop 0 [] . rmExtraGroupings
 
 syntaxHgls :: SGRsPair
 syntaxHgls =
-    ( [SetColor Foreground Dull Black]
-    , [Reset]
+    ( [Reset]
+    , [SetColor Foreground Vivid Blue, SetConsoleIntensity BoldIntensity]
     )
 
 reductionLoop :: Int -> [CST] -> CST -> IO ()
