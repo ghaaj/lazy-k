@@ -3,7 +3,6 @@
 module SKII.SKII (main) where
 
 import Control.Arrow (second)
-import Control.Concurrent (threadDelay)
 import Control.Monad (unless, when)
 import Control.Monad.IO.Class (liftIO)
 import Data.Bool (bool)
@@ -52,7 +51,6 @@ syntaxHgls =
 
 reductionLoop :: Int -> [CST] -> CST -> IO ()
 reductionLoop steps redexStack input = do
-    threadDelay 100000
     let nextRedexStack = input : redexStack
         (nextSteps, reducedInput) = second rmExtraGroupings $ reduce steps input
         isReduced = input /= reducedInput
